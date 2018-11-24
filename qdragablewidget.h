@@ -10,11 +10,13 @@ class QDragableWidget : public QWidget
 public:
     explicit QDragableWidget(QWidget *parent = nullptr);
     void setContent(QWidget* pContent);
+    void setActionCtl(bool bDragMove, bool bResize);
 signals:
 
 public slots:
 
 private:
+    bool m_bEnableDrag, m_bEnableResize;
     bool m_bResize;
     bool m_bIsDrag;
     QRect m_rcStart;

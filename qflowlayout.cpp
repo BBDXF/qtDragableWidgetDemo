@@ -1,154 +1,143 @@
-﻿#include <QWidget>
-#include "QFlowLayout.h"
+﻿#include "qflowlayout.h"
 
-QFlowLayout::QFlowLayout(QWidget *parent, int margin, int hSpacing, int vSpacing)
-    : QLayout(parent),
-      m_hSpace(hSpacing),
-      m_vSpace(vSpacing)
+QFlowLayout::QFlowLayout(QWidget *parent) : QLayout(parent)
 {
-    setContentsMargins(margin, margin, margin, margin);
-}
-
-QFlowLayout::QFlowLayout(int margin, int hSpacing, int vSpacing)
-    : m_hSpace(hSpacing),
-      m_vSpace(vSpacing)
-{
-    setContentsMargins(margin, margin, margin, margin);
-}
-
-QFlowLayout::~QFlowLayout()
-{
-    QLayoutItem *item;
-    while ((item = takeAt(0)))
-        delete item;
-}
-
-void QFlowLayout::addItem(QLayoutItem *item)
-{
-    itemList.append(item);
-}
-
-int QFlowLayout::horizontalSpacing() const
-{
-    if (m_hSpace >= 0) {
-        return m_hSpace;
-    } else {
-        return smartSpacing(QStyle::PM_LayoutHorizontalSpacing);
+    m_rcLayout = QRect(0,0,100,100);
+    if( this->parent() ){
+        QWidget* pParent = (QWidget*)this->parent();
+        m_rcLayout = pParent->rect();
     }
+    m_szLenX = m_rcLayout.width();
+    m_szLenY = m_rcLayout.height();
 }
 
-int QFlowLayout::verticalSpacing() const
+void QFlowLayout::_adjustItems()
 {
-    if (m_vSpace >= 0) {
-        return m_vSpace;
-    } else {
-        return smartSpacing(QStyle::PM_LayoutVerticalSpacing);
+    // 保留长宽，调整xy
+    QRect rcMax = m_rcLayout;
+
+    // margins and space
+    QMargins margs = this->contentsMargins();
+    int spcs = this->spacing();
+    // calc start
+    int x = margs.left();
+    int y = margs.top();
+    int ymax = 0;
+
+    // items
+    foreach (QLayoutItem* pItem, m_ItemList) {
+        QRect rcItem = pItem->geometry();
+        // pre calc
+        if( (x+rcItem.width()) > rcMax.width() ){
+            // new row
+            x =  margs.left();
+            y += ymax + spcs;
+            ymax = 0;
+        }
+        // set
+        rcItem.moveTo(x, y);
+        if( pItem->widget() ){
+            pItem->widget()->setGeometry(rcItem);
+        }else{
+            pItem->setGeometry(rcItem); // adjust child item
+        }
+        // after calc
+        x += rcItem.width() + spcs;
+        if( rcItem.height() > ymax ){
+            ymax = rcItem.height();
+        }
     }
-}
-
-int QFlowLayout::count() const
-{
-    return itemList.size();
-}
-
-QLayoutItem *QFlowLayout::itemAt(int index) const
-{
-    return itemList.value(index);
-}
-
-QLayoutItem *QFlowLayout::takeAt(int index)
-{
-    if (index >= 0 && index < itemList.size())
-        return itemList.takeAt(index);
-    else
-        return 0;
-}
-
-Qt::Orientations QFlowLayout::expandingDirections() const
-{
-    return 0;
-}
-
-bool QFlowLayout::hasHeightForWidth() const
-{
-    return true;
-}
-
-int QFlowLayout::heightForWidth(int width) const
-{
-    int height = doLayout(QRect(0, 0, width, 0), true);
-    return height;
-}
-
-void QFlowLayout::setGeometry(const QRect &rect)
-{
-    QLayout::setGeometry(rect);
-    doLayout(rect, false);
+    m_szLenX = rcMax.width();
+    m_szLenY = y+ymax; // 估计的最终大小
 }
 
 QSize QFlowLayout::sizeHint() const
 {
-    return minimumSize();
+    return QSize(m_szLenX, m_szLenY);
+}
+
+void QFlowLayout::addItem(QLayoutItem *itemLay)
+{
+    m_ItemList.append(itemLay);
+    _adjustItems();
+}
+
+QLayoutItem *QFlowLayout::itemAt(int index) const
+{
+    return m_ItemList.at(index);
+}
+
+QLayoutItem *QFlowLayout::takeAt(int index)
+{
+    if( index < 0 || index >= m_ItemList.size() ){
+        return NULL;
+    }
+    QLayoutItem* pTake = m_ItemList.takeAt(index);
+    if( pTake->widget() ){
+        pTake->widget()->close();
+    }
+    _adjustItems();
+    return pTake;
+}
+
+int QFlowLayout::count() const
+{
+    return m_ItemList.count();
 }
 
 QSize QFlowLayout::minimumSize() const
 {
-    QSize size;
-    QLayoutItem *item;
-    foreach (item, itemList)
-        size = size.expandedTo(item->minimumSize());
-
-    size += QSize(2*margin(), 2*margin());
-    return size;
+    return QSize(32,32);
 }
 
-int QFlowLayout::doLayout(const QRect &rect, bool testOnly) const
+QSize QFlowLayout::maximumSize() const
 {
-    int left, top, right, bottom;
-    getContentsMargins(&left, &top, &right, &bottom);
-    QRect effectiveRect = rect.adjusted(+left, +top, -right, -bottom);
-    int x = effectiveRect.x();
-    int y = effectiveRect.y();
-    int lineHeight = 0;
-
-    QLayoutItem *item;
-    foreach (item, itemList) {
-        QWidget *wid = item->widget();
-        int spaceX = horizontalSpacing();
-        if (spaceX == -1)
-            spaceX = wid->style()->layoutSpacing(
-                        QSizePolicy::PushButton, QSizePolicy::PushButton, Qt::Horizontal);
-        int spaceY = verticalSpacing();
-        if (spaceY == -1)
-            spaceY = wid->style()->layoutSpacing(
-                        QSizePolicy::PushButton, QSizePolicy::PushButton, Qt::Vertical);
-
-        int nextX = x + item->sizeHint().width() + spaceX;
-        if (nextX - spaceX > effectiveRect.right() && lineHeight > 0) {
-            x = effectiveRect.x();
-            y = y + lineHeight + spaceY;
-            nextX = x + item->sizeHint().width() + spaceX;
-            lineHeight = 0;
-        }
-
-        if (!testOnly)
-            item->setGeometry(QRect(QPoint(x, y), item->sizeHint()));
-
-        x = nextX;
-        lineHeight = qMax(lineHeight, item->sizeHint().height());
+    if( this->parent() ){
+        QWidget* pParent = (QWidget*)this->parent();
+        return pParent->size();
     }
-    return y + lineHeight - rect.y() + bottom;
+    return sizeHint();
 }
 
-int QFlowLayout::smartSpacing(QStyle::PixelMetric pm) const
+Qt::Orientations QFlowLayout::expandingDirections() const
 {
-    QObject *parent = this->parent();
-    if (!parent) {
-        return -1;
-    } else if (parent->isWidgetType()) {
-        QWidget *pw = static_cast<QWidget *>(parent);
-        return pw->style()->pixelMetric(pm, 0, pw);
-    } else {
-        return static_cast<QLayout *>(parent)->spacing();
-    }
+    return Qt::Vertical; // 垂直方向滚动条
+}
+
+void QFlowLayout::setGeometry(const QRect &rc)
+{
+    // 界面发生变化时，会主动调用这个，在这里主动改变子控件大小
+    qDebug()<<"setGeometry:"<<rc;
+    m_rcLayout = rc;
+    _adjustItems();
+}
+
+QRect QFlowLayout::geometry() const
+{
+    return m_rcLayout;
+}
+
+bool QFlowLayout::isEmpty() const
+{
+    return m_ItemList.empty();
+}
+
+void QFlowLayout::invalidate()
+{
+
+}
+
+QLayout *QFlowLayout::layout()
+{
+    return (QLayout*)this;
+}
+
+QSizePolicy::ControlTypes QFlowLayout::controlTypes() const
+{
+    return QSizePolicy::Frame;
+}
+
+void QFlowLayout::childEvent(QChildEvent *event)
+{
+    // add removed polished ...events for items
 }

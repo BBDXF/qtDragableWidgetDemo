@@ -10,6 +10,8 @@ QDragableWidget::QDragableWidget(QWidget *parent) : QWidget(parent)
     m_bIsDrag = false;
     m_bResize = false;
 
+    setActionCtl(true, true);
+
     m_imgResize.load(u8":/resize.png");
     m_pImgShow = new QLabel(this);
     m_pImgShow->setGeometry(0,0,16,16);
@@ -33,6 +35,12 @@ void QDragableWidget::setContent(QWidget *pContent)
     }
 }
 
+void QDragableWidget::setActionCtl(bool bDragMove, bool bResize)
+{
+    m_bEnableDrag = bDragMove;
+    m_bEnableResize = bResize;
+}
+
 void QDragableWidget::paintEvent(QPaintEvent *event)
 {
     QWidget::paintEvent(event);
@@ -41,9 +49,11 @@ void QDragableWidget::paintEvent(QPaintEvent *event)
     QPainter p(this);
     this->style()->drawPrimitive(QStyle::PE_Widget, &o, &p, this);
 
-    // draw resize pic
-    QRect rc = this->rect();
-    m_pImgShow->move(rc.bottomRight()-QPoint(17,17));
+    if( m_bEnableResize ){
+        // draw resize pic
+        QRect rc = this->rect();
+        m_pImgShow->move(rc.bottomRight()-QPoint(17,17));
+    }
 }
 
 void QDragableWidget::mousePressEvent(QMouseEvent *event)
@@ -55,13 +65,16 @@ void QDragableWidget::mousePressEvent(QMouseEvent *event)
         m_rcStart.moveTo(ptLT);
         QPoint curPos = event->pos();
         if( (m_rcStart.width() - curPos.x()) < 16 && ( m_rcStart.height() - curPos.y() )<16 ){
-            m_bResize = true;
-            setCursor(Qt::SizeFDiagCursor);
+            if( m_bEnableResize ){
+                m_bResize = true;
+                setCursor(Qt::SizeFDiagCursor);
+            }
         }else{
-            m_bIsDrag = true;
-            setCursor(Qt::SizeAllCursor);
+            if( m_bEnableDrag ){
+                m_bIsDrag = true;
+                setCursor(Qt::SizeAllCursor);
+            }
         }
-//        qDebug()<<curPos<<m_rcStart<<m_bResize<<m_bIsDrag;
     }
 }
 
@@ -76,7 +89,7 @@ void QDragableWidget::mouseReleaseEvent(QMouseEvent *event)
 
 void QDragableWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    if( m_bIsDrag ){
+    if( m_bIsDrag && m_bEnableDrag){
         QPoint distance = event->globalPos() - m_pStart;
         QPoint pt = m_rcStart.topLeft()+distance;
         // limit min x,y
@@ -88,7 +101,7 @@ void QDragableWidget::mouseMoveEvent(QMouseEvent *event)
         }
         this->move(pt);
     }
-    if( m_bResize ){
+    if( m_bResize && m_bEnableResize ){
         QPoint distance = event->globalPos() - m_pStart;
         QRect rc = m_rcStart.adjusted(0,0,distance.x(),distance.y());
         // limit min width and height

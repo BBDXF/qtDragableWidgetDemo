@@ -28,12 +28,14 @@ SOURCES += \
         dialog.cpp \
     dlgshow.cpp \
     qdragablewidget.cpp \
+    qflowlayout.cpp \
     qflowlayout.cpp
 
 HEADERS += \
         dialog.h \
     dlgshow.h \
     qdragablewidget.h \
+    qflowlayout.h \
     qflowlayout.h
 
 FORMS += \
