@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DlgShow</class>
+ <widget class="QDialog" name="DlgShow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>300</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QDialog{
+	border: 1px solid black;
+	background-color: lightgreen;
+}
+
+QLabel{
+color: red;
+font-size: 32px;
+}</string>
+  </property>
+  <widget class="QLabel" name="label">
+   <property name="geometry">
+    <rect>
+     <x>70</x>
+     <y>20</y>
+     <width>251</width>
+     <height>111</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Hello World!
+You can you up</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEdit">
+   <property name="geometry">
+    <rect>
+     <x>70</x>
+     <y>130</y>
+     <width>141</width>
+     <height>31</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton">
+   <property name="geometry">
+    <rect>
+     <x>80</x>
+     <y>200</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>PushButton</string>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
